@@ -1,5 +1,8 @@
 import tkinter as tk
+from tkinter.messagebox import showerror
 import re
+
+from print_btw import print_btw
 
 
 def is_valid1(text):
@@ -17,6 +20,8 @@ def is_valid2(text):
     """ Разрешен ввод только цифр """
     if text == "":
         return True
+    if text == "0":
+        return False
     pattern = r'^\d+$'
     result = re.match(pattern, text)
     if result:
@@ -26,7 +31,16 @@ def is_valid2(text):
 
 def print_label():
     """ Печать этикеток """
-    print('Печать этикеток')
+    art = entry_article.get()  # Артикул
+    cou = entry_count.get()  # Количество
+    if art == "" or cou == "":
+        return
+    try:
+        print_btw(entry_article.get(), int(cou), root)  # Печать этикеток
+    except Exception as e:
+        # Окно сообщения об ошибке стандартное
+        showerror("Ошибка", e)
+        return
 
 
 root = tk.Tk()
