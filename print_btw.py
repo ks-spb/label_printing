@@ -8,19 +8,23 @@
 # SEARCH_START - Папка на Yandex диске, в которой будет производиться поиск
 
 import io
+import time
 import os
 import json
 import re
 from environs import Env
+from tkinter import *
+import tkinter as tk
 from tkinter.messagebox import askyesno
 import yadisk
 
 
 class RemoteOperation:
     """ Класс для работы с Яндекс.Диском.
-    Блокирует главное окно программы при работе. """
+    Выводит сообщения на кнопке вместо сообщения печать """
     def __init__(self, root):
         # Данные о путях и токены для доступа к API берем из .env файла
+        self.root = root
         dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
         if os.path.exists(dotenv_path):
             env = Env()
@@ -32,34 +36,102 @@ class RemoteOperation:
         self.TOKEN = env("TOKEN")
         self.SEARCH_START = env("SEARCH_START")
 
+        self.status = 'start'  # Статус файла со списком
+
         # Подключаемся к Яндекс.Диску
+        self.show_message('Подключение')  # Вывод сообщения
         try:
-            self.y = yadisk.YaDisk(token=self.TOKEN)
-            if self.y.check_token():
+            self.yandex = yadisk.YaDisk(token=self.TOKEN)
+            if self.yandex.check_token():
                 print("Подключение к Yandex.Disk...")
             else:
                 print("Неверный токен")
                 raise
+            self.hide_message()
         except Exception:
+            self.hide_message()
             raise Exception("Ошибка подключения к сети.")
 
+    def show_message(self, message):
+        """Меняем текст сообщения на кнопке Печать главного окна"""
+        self.root.config(text=message)
+        self.root.update()
+
+    def hide_message(self):
+        """Возвращаем слово Печать на кнопку Печать главного окна"""
+        self.root.config(text='Печать')
+        self.root.update()
+
+    def change_status(self):
+        """ Меняет статус файла со списком этикеток.
+        Cтатус может быть 'start', 'local', 'yandex', 'last', 'current'.
+        'start' после проверки существования файла меняется на local.
+        Возвращает: новый статус. Статус 'current' возвращает, когда список этикеток актуален.
+        Если файл отсутствует на локальном диске, пытается загрузить его с Яндекс.Диска.
+        Если файл отсутствует на Яндекс.Диске, проводит сканирование и создает его, потом загружает.
+        Статус меняет в зависимости от способа получения файла."""
+
+        if not os.path.exists('btws.json') or self.status == 'local':
+            self.show_message('Загрузка обновлений')  # Открываем окно ожидания
+            # Если нет файла со списком этикеток или он есть, но не актуален,
+            # то пытаемся его получить с Яндекс.Диска
+            self.status = 'yandex'  # Список взят с Яндекс.Диска
+            if self.download():
+                return self.status  # Файл получен с Яндекс.Диска
+        if self.status == 'start':
+            # При старте статус меняем на local, проверив что файл существует
+            self.status = 'local'
+            return self.status
+        if self.status == 'yandex':
+            # Список уже получен с Яндекс.Диска или попытка получить его с Яндекс.Диска не удалась
+            # Проводим сканирование и создаем файл
+            try:
+                self.search_btw()
+                self.status = 'last'  # Список уже обновлен
+                # Загружаем файл на Яндекс.Диска
+                if self.download():
+                    return self.status  # Файл получен с Яндекс.Диска
+                else:
+                    raise Exception('Ошибка загрузки файла c Яндекс диска.')
+            except Exception as e:
+                print('Ошибка поиска этикеток:', e)
+                raise Exception('Ошибка поиска этикеток.', e)
+        else:
+            self.status = 'current'  # Список актуален
+        return self.status
+
     def download(self, file_yandex='btws.json', file_local='last.btw'):
+        """Загружает файл с Яндекс диска на локальный компьютер
+
+        Принимает:
+        - полное имя (с путем) файла на Яндекс, если имя btws.json
+        то качает с корневой папки заданной для программы и сохраняет с таким же именем.
+        - имя с которым файл будет сохранен, по умолчанию 'last.btw'.
+        Возвращает False - если запрашиваемого файла нет."""
+
+        message = 'Загрузка этикетки'
         if file_yandex == 'btws.json':
+            message = 'Загрузка обновлений'
             file_local = file_yandex
             file_yandex = f'{self.SEARCH_START}/{file_yandex}'
-
-        """ Скачивание файла с Яндекс.Диска """
-        self.y.download(file_yandex, file_local)
+        if self.yandex.exists(file_yandex):
+            self.show_message(message)  # Показываем сообщение
+            # Загрузка файла
+            self.yandex.download(file_yandex, file_local)
+            self.hide_message()
+            return True
+        return False
 
     def search_btw(self):
         """ Поиск этикеток на Яндекс.Диске """
+        self.show_message('Создание списка 1-2 мин.')  # Открываем окно ожидания
         def search_files(dir_path):
-            """ Рекурсивно перебираем все папки в заданной и переименовываем файлы в них.
+            """ Рекурсивно перебираем все папки в заданной и переименовываем файлы в них."""
 
-            """
-            dirs = self.y.listdir(dir_path)  # Получаем список файлов и папок в заданной папке
+            dirs = self.yandex.listdir(dir_path)  # Получаем список файлов и папок в заданной папке
             dir = []  # Список объектов папок
             for d in dirs:
+                self.root.update()  # Обновляем окно программы
                 if d['type'] == 'dir':
                     dir.append(d)
                     continue
@@ -81,31 +153,20 @@ class RemoteOperation:
         json_str = json.dumps(btws, indent=4)
 
         # Сохраняем в файл в формате json на yandex диске
-        self.y.upload(io.BytesIO(json_str.encode()), f'{self.SEARCH_START}/btws.json', overwrite=True)
+        self.yandex.upload(io.BytesIO(json_str.encode()), f'{self.SEARCH_START}/btws.json', overwrite=True)
 
+        self.hide_message()
 
 def print_btw(art: str, count: int, root):
     """ Печать этикеток.
-    Принимает артикул и ссылку на главное окно программы """
-    try:
-        yandex = RemoteOperation(root)  # Подключаемся к Яндекс.Диску
-    except Exception as e:
-        raise Exception(e)
+    Принимает артикул и ссылку на кнопку печать главного окна """
 
-    status = 'local'  # Список взят с локального диска
-    if not os.path.exists('btws.json'):
-        # Если нет файла со списком этикеток, то пытаемся его получить с Яндекс.Диска
-        try:
-            yandex.download()
-            status = 'yandex'  # Список взят с Яндекс.Диска
-        except yadisk.exceptions.PathNotFoundError:
-            print('Файл со списком этикеток не найден')
-            raise Exception('Файл со списком этикеток не найден')
-
+    yandex = RemoteOperation(root)  # Подключаемся к Яндекс.Диску
+    yandex.change_status()  # Подготовка файла со списком этикеток
     print('Печать этикеток')
-    # Открываем файл со списком этикеток
-
-    while True:
+    # Открываем файл со списком этикеток ищем и печатаем нужную.
+    # Если не находим артикул, то обновляем список этикеток и пытаемся найти снова.
+    while yandex.status != 'current':
         json_file = open('btws.json', 'rb')
         cast = json.loads(json_file.read().decode('utf-8'))
         if str(art) in cast:
@@ -117,29 +178,14 @@ def print_btw(art: str, count: int, root):
             for i in range(count+1):
                 os.startfile('last.btw', 'print')
             return
-
         else:
             # Артикул не найден
-            if status == 'local':
-                # Список взят с локального диска
-                try:
-                    status = 'yandex'  # Список взят с Яндекс.Диска
-                    yandex.download()
-                    continue
-                except yadisk.exceptions.PathNotFoundError:
-                    print('Файл со списком этикеток не найден. Пробуем перечитать список.')
+            print('Артикул не найден, пытаемся обновить список этикеток.')
+            if yandex.status == 'yandex':
+                if not askyesno("Ошибка", "Артикул не найден. Произвести поиск этикеток?"):
+                    print('Поиск этикеток отменен.')
+                    raise Exception('Поиск этикеток отменен.')
+            yandex.change_status()
 
-            if status == 'yandex':
-                # Список взят с Яндекс. Диска, но артикула там нет
-                if askyesno("Ошибка", "Артикул не найден. Произвести поиск этикеток?"):
-                    try:
-                        yandex.search_btw()
-                        status = 'error'  # Список уже обновлен
-                        continue
-                    except Exception:
-                        print('Ошибка поиска этикеток.')
-                        raise Exception('Ошибка поиска этикеток.')
-
-            raise Exception('Артикул не найден.')
-
-
+    print('Артикул не найден.')
+    raise Exception('Артикул не найден.')

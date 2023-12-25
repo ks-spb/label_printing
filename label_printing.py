@@ -31,22 +31,35 @@ def is_valid2(text):
 
 def print_label():
     """ Печать этикеток """
+    global BLOCK
+    if BLOCK:
+        return
     art = entry_article.get()  # Артикул
     cou = entry_count.get()  # Количество
     if art == "" or cou == "":
         return
     try:
-        print_btw(entry_article.get(), int(cou), root)  # Печать этикеток
+        BLOCK = True  # Блокировка запуска функции печати до выхода из нее
+        print_btw(entry_article.get(), int(cou), button_print)  # Печать этикеток
     except Exception as e:
         # Окно сообщения об ошибке стандартное
         showerror("Ошибка", e)
-        return
 
+    BLOCK = False  # Разблокировка запуска функции печати
+    return
+
+
+BLOCK = False  # Блокировка запуска функции печати до выхода из нее
 
 root = tk.Tk()
 root.title("Печать этикеток")
 root.resizable(False, False)
-root.geometry("560x250+500+300")
+
+# Размер экране
+w = root.winfo_screenwidth()
+h = root.winfo_screenheight()
+
+root.geometry(f'{560}x{250}+{(w-560)//2}+{(h-250)//2}')
 
 root.option_add("*Font", "Arial 20")  # установка размера шрифта
 
@@ -66,7 +79,7 @@ entry_count = tk.Entry(root, width=3, validate="key", validatecommand=check1)
 entry_count.insert(0, "1")
 entry_count.place(x=460, y=20)
 
-button_print = tk.Button(root, text="Печать", relief=tk.GROOVE)
+button_print = tk.Button(root, text="Печать", relief=tk.GROOVE, command=print_label)
 button_print.place(x=40, y=120, width=470, height=100)
 
 # Нажатие Enter и Ctrl-P начинает печать
