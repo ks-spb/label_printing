@@ -150,10 +150,10 @@ class RemoteOperation:
         search_files(self.SEARCH_START)
 
         # Преобразуем словарь в строку JSON
-        json_str = json.dumps(btws, indent=4)
+        json_str = json.dumps(btws, indent=4, ensure_ascii=False)
 
         # Сохраняем в файл в формате json на yandex диске
-        self.yandex.upload(io.BytesIO(json_str.encode()), f'{self.SEARCH_START}/btws.json', overwrite=True)
+        self.yandex.upload(io.BytesIO(json_str.encode('utf-8')), f'{self.SEARCH_START}/btws.json', overwrite=True)
 
         self.hide_message()
 
