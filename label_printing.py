@@ -53,6 +53,7 @@ BLOCK = False  # Блокировка запуска функции печати
 
 root = tk.Tk()
 root.title("Печать этикеток")
+root.iconbitmap(r'ico.ico')
 root.resizable(False, False)
 
 # Размер экране

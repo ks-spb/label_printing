@@ -8,7 +8,8 @@
 # SEARCH_START - Папка на Yandex диске, в которой будет производиться поиск
 
 import io
-import time
+import subprocess
+import shlex
 import os
 import json
 import re
@@ -25,13 +26,6 @@ class RemoteOperation:
     def __init__(self, root):
         # Данные о путях и токены для доступа к API берем из .env файла
         self.root = root
-        dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
-        if os.path.exists(dotenv_path):
-            env = Env()
-            env.read_env(dotenv_path)
-        else:
-            print('Отсутствует файл конфигурации.')
-            raise Exception("Отсутствует файл конфигурации.")
 
         self.TOKEN = env("TOKEN")
         self.SEARCH_START = env("SEARCH_START")
@@ -175,8 +169,8 @@ def print_btw(art: str, count: int, root):
             # Печать файла
             print('Печать этикетки')
             # Печать файла с указанием количества копий
-            for i in range(count+1):
-                os.startfile('last.btw', 'print')
+            command = f'"{BARTENDER}" "last.btw" /P /XS /C={count}'
+            subprocess.run(command, shell=True)
             return
         else:
             # Артикул не найден
@@ -189,3 +183,19 @@ def print_btw(art: str, count: int, root):
 
     print('Артикул не найден.')
     raise Exception('Артикул не найден.')
+
+
+# Подготовка чтения файла конфигурации
+dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
+if os.path.exists(dotenv_path):
+    env = Env()
+    env.read_env(dotenv_path)
+else:
+    print('Отсутствует файл конфигурации.')
+    raise Exception("Отсутствует файл конфигурации.")
+
+BARTENDER = env("BARTENDER")  # Путь к программе Bartender для печати этикеток
+if BARTENDER[-1] != '\\':
+    BARTENDER += '\\'
+BARTENDER = BARTENDER.replace('\\', '\\\\') + "bartend.exe"
+print(BARTENDER)
