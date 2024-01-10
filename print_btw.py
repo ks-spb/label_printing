@@ -163,26 +163,26 @@ def print_btw(art: str, count: int, root):
     while yandex.status != 'current':
         json_file = open('btws.json', 'rb')
         cast = json.loads(json_file.read().decode('utf-8'))
-        if str(art) in cast:
-            # Сохранить файл на локальный диск
-            yandex.download(cast[str(art)])
+        if str(art) in cast and yandex.download(cast[str(art)]):
+            # Удачно сохранили файл на диск еще в условии: yandex.download
+
             # Печать файла
-            print('Печать этикетки')
+            print('Печать этикетки ' + str(art))
             # Печать файла с указанием количества копий
             command = f'"{BARTENDER}" "last.btw" /P /XS /C={count}'
             subprocess.run(command, shell=True)
             return
         else:
             # Артикул не найден
-            print('Артикул не найден, пытаемся обновить список этикеток.')
+            print('Артикул или файл не найден, пытаемся обновить список этикеток.')
             if yandex.status == 'yandex':
-                if not askyesno("Ошибка", "Артикул не найден. Произвести поиск этикеток?"):
+                if not askyesno("Ошибка", "Артикул или файл не найден. Произвести поиск этикеток?"):
                     print('Поиск этикеток отменен.')
                     raise Exception('Поиск этикеток отменен.')
             yandex.change_status()
 
-    print('Артикул не найден.')
-    raise Exception('Артикул не найден.')
+    print('Артикул или файл не найден.')
+    raise Exception('Артикул или файл не найден.')
 
 
 # Подготовка чтения файла конфигурации

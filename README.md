@@ -16,3 +16,5 @@
 Запускается файл label_printing.py.
 Для создания exe:
 pyinstaller --windowed label_printing.py
+Поместить файл .env в папку _internal, 
+а файл ico.ico рядом с ней и файлом label_printing.exe
