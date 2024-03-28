@@ -9,7 +9,7 @@
 
 import io
 import subprocess
-import shlex
+import uuid
 import os
 import json
 import re
@@ -22,7 +22,7 @@ import yadisk
 
 class RemoteOperation:
     """ Класс для работы с Яндекс.Диском.
-    Выводит сообщения на кнопке вместо сообщения печать """
+    Выводит сообщения в поле для вывода, которое получает при инициализации. """
     def __init__(self, root):
         # Данные о путях и токены для доступа к API берем из .env файла
         self.root = root
@@ -53,7 +53,7 @@ class RemoteOperation:
 
     def hide_message(self):
         """Возвращаем слово Печать на кнопку Печать главного окна"""
-        self.root.config(text='Печать')
+        self.root.config(text='')
         self.root.update()
 
     def change_status(self):
@@ -94,26 +94,30 @@ class RemoteOperation:
             self.status = 'current'  # Список актуален
         return self.status
 
-    def download(self, file_yandex='btws.json', file_local='last.btw'):
+    def download(self, file_yandex='btws.json'):
         """Загружает файл с Яндекс диска на локальный компьютер
 
         Принимает:
         - полное имя (с путем) файла на Яндекс, если имя btws.json
         то качает с корневой папки заданной для программы и сохраняет с таким же именем.
-        - имя с которым файл будет сохранен, по умолчанию 'last.btw'.
-        Возвращает False - если запрашиваемого файла нет."""
+        Иначе создает случайное имя (uuid) и сохраняет с ним.
+        Возвращает False - если запрашиваемого файла нет.
+        Или имя сохраненного файла."""
 
-        message = 'Загрузка этикетки'
         if file_yandex == 'btws.json':
             message = 'Загрузка обновлений'
             file_local = file_yandex
             file_yandex = f'{self.SEARCH_START}/{file_yandex}'
+        else:
+            message = 'Загрузка этикетки'
+            uniqueid = uuid.uuid4()
+            file_local = str(uniqueid).replace("-", "")[:10] + '.btw'
         if self.yandex.exists(file_yandex):
             self.show_message(message)  # Показываем сообщение
             # Загрузка файла
             self.yandex.download(file_yandex, file_local)
             self.hide_message()
-            return True
+            return file_local
         return False
 
     def search_btw(self):
@@ -153,7 +157,7 @@ class RemoteOperation:
 
 def print_btw(art: str, count: int, root):
     """ Печать этикеток.
-    Принимает артикул и ссылку на кнопку печать главного окна """
+    Принимает артикул, количество копий печати и ссылку на поле для вывода сообщений. """
 
     yandex = RemoteOperation(root)  # Подключаемся к Яндекс.Диску
     yandex.change_status()  # Подготовка файла со списком этикеток
@@ -163,14 +167,18 @@ def print_btw(art: str, count: int, root):
     while yandex.status != 'current':
         json_file = open('btws.json', 'rb')
         cast = json.loads(json_file.read().decode('utf-8'))
-        if str(art) in cast and yandex.download(cast[str(art)]):
-            # Удачно сохранили файл на диск еще в условии: yandex.download
+        name = None
+        if str(art) in cast:
+            name = yandex.download(cast[str(art)])
+        if name:
+            # Удачно сохранили файл на диск еще в условии: yandex.download.
+            # Получили имя файла, под которым сохранили.
 
             # Печать файла
             print('Печать этикетки ' + str(art))
             # Печать файла с указанием количества копий
-            command = f'"{BARTENDER}" "last.btw" /P /XS /C={count}'
-            subprocess.run(command, shell=True)
+            command = f'"{BARTENDER}" /RUN {name}'  # /PD /XS /C={count}
+            subprocess.Popen(command, shell=True)
             return
         else:
             # Артикул не найден

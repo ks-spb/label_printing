@@ -1,3 +1,4 @@
+import os
 import tkinter as tk
 from tkinter.messagebox import showerror
 import re
@@ -32,15 +33,15 @@ def is_valid2(text):
 def print_label():
     """ Печать этикеток """
     global BLOCK
-    if BLOCK:
-        return
+    # if BLOCK:
+    #     return
     art = entry_article.get()  # Артикул
     cou = entry_count.get()  # Количество
     if art == "" or cou == "":
         return
     try:
         BLOCK = True  # Блокировка запуска функции печати до выхода из нее
-        print_btw(entry_article.get(), int(cou), button_print)  # Печать этикеток
+        print_btw(entry_article.get(), int(cou), print_msg)  # Печать этикеток
     except Exception as e:
         # Окно сообщения об ошибке стандартное
         showerror("Ошибка", e)
@@ -50,6 +51,15 @@ def print_label():
 
 
 BLOCK = False  # Блокировка запуска функции печати до выхода из нее
+
+# Удаляем старые этикетки из папки программы.
+# Получаем список файлов в текущей папке
+files = os.listdir()
+
+# Проходим по каждому файлу
+for file in files:
+    if file.endswith(".btw"):  # Проверяем, что файл имеет расширение ".btw"
+        os.remove(file)  # Удаляем файл
 
 root = tk.Tk()
 root.title("Печать этикеток")
@@ -82,6 +92,9 @@ entry_count.place(x=460, y=20)
 
 button_print = tk.Button(root, text="Печать", relief=tk.GROOVE, command=print_label)
 button_print.place(x=40, y=120, width=470, height=100)
+
+print_msg = tk.Label(root, text="", width=34, justify="center", fg="red")
+print_msg.place(x=0, y=70)
 
 # Нажатие Enter и Ctrl-P начинает печать
 root.bind('<Control-p>', lambda event: print_label())
