@@ -1,0 +1,8 @@
+;Расположенный ниже комментарий содержит команды SFX-сценария
+
+
+Path="C:\Label Printing"
+Overwrite=1
+Title=Печать этикеток
+
+Shortcut=D, ".\label_printing.exe", , "Открыть программу для открытия и печати этикеток", "Label Printing", .\ico.ico

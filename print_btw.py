@@ -9,7 +9,6 @@
 
 import io
 import subprocess
-import uuid
 import os
 import json
 import re
@@ -94,13 +93,13 @@ class RemoteOperation:
             self.status = 'current'  # Список актуален
         return self.status
 
-    def download(self, file_yandex='btws.json'):
+    def download(self, file_yandex='btws.json', name_for_save=''):
         """Загружает файл с Яндекс диска на локальный компьютер
 
         Принимает:
         - полное имя (с путем) файла на Яндекс, если имя btws.json
         то качает с корневой папки заданной для программы и сохраняет с таким же именем.
-        Иначе создает случайное имя (uuid) и сохраняет с ним.
+        - Иначе во втором параметре передается имя для сохранения файла (артикул).
         Возвращает False - если запрашиваемого файла нет.
         Или имя сохраненного файла."""
 
@@ -110,8 +109,7 @@ class RemoteOperation:
             file_yandex = f'{self.SEARCH_START}/{file_yandex}'
         else:
             message = 'Загрузка этикетки'
-            uniqueid = uuid.uuid4()
-            file_local = str(uniqueid).replace("-", "")[:10] + '.btw'
+            file_local = name_for_save + '.btw'
         if self.yandex.exists(file_yandex):
             self.show_message(message)  # Показываем сообщение
             # Загрузка файла
@@ -155,9 +153,11 @@ class RemoteOperation:
 
         self.hide_message()
 
+
 def print_btw(art: str, count: int, root):
     """ Печать этикеток.
-    Принимает артикул, количество копий печати и ссылку на поле для вывода сообщений. """
+    Принимает артикул, количество копий печати и ссылку на поле для вывода сообщений.
+    Если количество 0 - то этикетку нужно не печатать, а просто открыть в редакторе."""
 
     yandex = RemoteOperation(root)  # Подключаемся к Яндекс.Диску
     yandex.change_status()  # Подготовка файла со списком этикеток
@@ -169,15 +169,20 @@ def print_btw(art: str, count: int, root):
         cast = json.loads(json_file.read().decode('utf-8'))
         name = None
         if str(art) in cast:
-            name = yandex.download(cast[str(art)])
+            name = yandex.download(cast[str(art)], str(art))
         if name:
             # Удачно сохранили файл на диск еще в условии: yandex.download.
             # Получили имя файла, под которым сохранили.
+            if count:
+                print('Печать этикетки ' + str(art))
+                # Печать файла с указанием количества копий
+                command = f'"{BARTENDER}" /P /XS /RUN /C={count} {name}'
+            else:
+                # Печать файла
+                print('Открытие этикетки ' + str(art))
+                # Открытие файла в редакторе
+                command = f'"{BARTENDER}" /RUN {name}'
 
-            # Печать файла
-            print('Печать этикетки ' + str(art))
-            # Печать файла с указанием количества копий
-            command = f'"{BARTENDER}" /RUN {name}'  # /PD /XS /C={count}
             subprocess.Popen(command, shell=True)
             return
         else:

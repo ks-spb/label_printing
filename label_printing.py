@@ -30,14 +30,15 @@ def is_valid2(text):
     else:
         return False
 
-def print_label():
-    """ Печать этикеток """
+
+def open_label(cou=0):
+    """ Открытие этикеток в редакторе или для печати.
+    Если передано количество - то нужно сразу выводить на печать."""
     global BLOCK
-    # if BLOCK:
-    #     return
+    if BLOCK:
+        return
     art = entry_article.get()  # Артикул
-    cou = entry_count.get()  # Количество
-    if art == "" or cou == "":
+    if art == "":
         return
     try:
         BLOCK = True  # Блокировка запуска функции печати до выхода из нее
@@ -48,6 +49,14 @@ def print_label():
 
     BLOCK = False  # Разблокировка запуска функции печати
     return
+
+
+def print_label():
+    """ Печать этикеток """
+    cou = entry_count.get()  # Количество
+    if cou == "":
+        return
+    open_label(cou=int(cou))  # Открытие с количеством - это печать
 
 
 BLOCK = False  # Блокировка запуска функции печати до выхода из нее
@@ -90,8 +99,11 @@ entry_count = tk.Entry(root, width=3, validate="key", validatecommand=check1)
 entry_count.insert(0, "1")
 entry_count.place(x=460, y=20)
 
-button_print = tk.Button(root, text="Печать", relief=tk.GROOVE, command=print_label)
-button_print.place(x=40, y=120, width=470, height=100)
+button_opem = tk.Button(root, text="Печать", relief=tk.GROOVE, command=print_label)
+button_opem.place(x=40, y=120, width=225, height=100)
+
+button_print = tk.Button(root, text="Открыть", relief=tk.GROOVE, command=open_label)
+button_print.place(x=285, y=120, width=225, height=100)
 
 print_msg = tk.Label(root, text="", width=34, justify="center", fg="red")
 print_msg.place(x=0, y=70)
