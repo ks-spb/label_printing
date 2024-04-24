@@ -4,6 +4,7 @@ from tkinter.messagebox import showerror
 import re
 
 from print_btw import print_btw
+from print_supplyes import print_supplyes
 
 
 def is_valid1(text):
@@ -111,5 +112,13 @@ print_msg.place(x=0, y=70)
 # Нажатие Enter и Ctrl-P начинает печать
 root.bind('<Control-p>', lambda event: print_label())
 root.bind('<Return>', lambda event: print_label())
+
+
+# Меню
+mainmenu = tk.Menu(root)
+root.config(menu=mainmenu)
+
+mainmenu.add_command(label="Поставки", command=lambda: print_supplyes(root))
+
 
 root.mainloop()

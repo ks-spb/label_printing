@@ -13,8 +13,6 @@ import os
 import json
 import re
 from environs import Env
-from tkinter import *
-import tkinter as tk
 from tkinter.messagebox import askyesno
 import yadisk
 
