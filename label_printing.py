@@ -4,7 +4,7 @@ from tkinter.messagebox import showerror
 import re
 
 from print_btw import print_btw
-from print_supplyes import print_supplyes
+from print_supplyes import print_supplies
 
 
 def is_valid1(text):
@@ -118,7 +118,7 @@ root.bind('<Return>', lambda event: print_label())
 mainmenu = tk.Menu(root)
 root.config(menu=mainmenu)
 
-mainmenu.add_command(label="Поставки", command=lambda: print_supplyes(root))
+mainmenu.add_command(label="Поставки", command=lambda: print_supplies(root))
 
 
 root.mainloop()

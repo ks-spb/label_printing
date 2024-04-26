@@ -12,9 +12,10 @@ import subprocess
 import os
 import json
 import re
-from environs import Env
 from tkinter.messagebox import askyesno
 import yadisk
+
+from config import env
 
 
 class RemoteOperation:
@@ -196,17 +197,7 @@ def print_btw(art: str, count: int, root):
     raise Exception('Артикул или файл не найден.')
 
 
-# Подготовка чтения файла конфигурации
-dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
-if os.path.exists(dotenv_path):
-    env = Env()
-    env.read_env(dotenv_path)
-else:
-    print('Отсутствует файл конфигурации.')
-    raise Exception("Отсутствует файл конфигурации.")
-
 BARTENDER = env("BARTENDER")  # Путь к программе Bartender для печати этикеток
 if BARTENDER[-1] != '\\':
     BARTENDER += '\\'
 BARTENDER = BARTENDER.replace('\\', '\\\\') + "bartend.exe"
-print(BARTENDER)
