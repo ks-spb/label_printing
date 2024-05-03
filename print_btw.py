@@ -50,7 +50,7 @@ class RemoteOperation:
         self.root.update()
 
     def hide_message(self):
-        """Возвращаем слово Печать на кнопку Печать главного окна"""
+        """Возвращаем слово Печать"""
         self.root.config(text='')
         self.root.update()
 
@@ -157,7 +157,7 @@ def print_btw(art: str, count: int, root):
     """ Печать этикеток.
     Принимает артикул, количество копий печати и ссылку на поле для вывода сообщений.
     Если количество 0 - то этикетку нужно не печатать, а просто открыть в редакторе."""
-
+    art = ARTICLE_DICT.get(art, art)  # Проверяем артикул в словаре перевода
     yandex = RemoteOperation(root)  # Подключаемся к Яндекс.Диску
     yandex.change_status()  # Подготовка файла со списком этикеток
     print('Печать этикеток')
@@ -201,3 +201,12 @@ BARTENDER = env("BARTENDER")  # Путь к программе Bartender для 
 if BARTENDER[-1] != '\\':
     BARTENDER += '\\'
 BARTENDER = BARTENDER.replace('\\', '\\\\') + "bartend.exe"
+
+# Читаем в память файл для перевода артикулов articles_dict.json
+# из папки программы и переводим его в словарь.
+try:
+    with open('articles_dict.json', 'rb') as file:
+        ARTICLE_DICT = json.loads(file.read().decode('utf-8'))
+except Exception as e:
+    print('Ошибка чтения словаря артикулов:', e)
+    ARTICLE_DICT = dict()

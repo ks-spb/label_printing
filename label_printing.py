@@ -9,6 +9,7 @@ from print_supplyes import print_supplies
 
 def is_valid1(text):
     """ Разрешен ввод только цифр и тире между ними """
+    TODO: "Разрешен ввод любых символов - последний True"
     if text == "":
         return True
     pattern = r'^(\d+)(\d*(-\d*)?|\d*)$'
@@ -16,7 +17,7 @@ def is_valid1(text):
     if result:
         return True
     else:
-        return False
+        return True
 
 def is_valid2(text):
     """ Разрешен ввод только цифр """
@@ -118,7 +119,7 @@ root.bind('<Return>', lambda event: print_label())
 mainmenu = tk.Menu(root)
 root.config(menu=mainmenu)
 
-mainmenu.add_command(label="Поставки", command=lambda: print_supplies(root))
+mainmenu.add_command(label="Поставки", command=lambda: print_supplies(print_msg))
 
 
 root.mainloop()

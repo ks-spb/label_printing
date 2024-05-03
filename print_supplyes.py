@@ -7,11 +7,14 @@
 # Печатает Этикетку и Стикер.
 
 import json
+import base64
 import requests
+import subprocess
 import tkinter as tk
 from config import env
 
 from tkinter.messagebox import showerror
+from print_btw import print_btw, BARTENDER
 
 
 class WBClient():
@@ -87,15 +90,30 @@ class WBClient():
         out = []
         for tpl in whs.values():
             tpl.sort(key=lambda x: x[1])
-            out = [{'order': i[0], 'article': i[1]} for i in tpl]
+            out += [{'order': i[0], 'article': i[1]} for i in tpl]
         return out
+
+    def extract_stickers(self, stickers):
+        """Сохранение стикеров для Сборочных заданий.
+        Принимает данные со списком в формате WB и путь для сохранения стикеров.
+        https://openapi.wildberries.ru/marketplace/api/ru/#tag/Sborochnye-zadaniya/paths/~1api~1v3~1orders~1stickers/post
+        """
+        self.err_message = 'Ошибка сохранения стикеров.'
+        # Сохранение файлов изображений
+        for sticker in stickers['stickers']:
+            # Декодирование base64 строки в бинарные данные
+            decoded_data = base64.b64decode(sticker['file'])
+
+            # Сохранение бинарных данных в файл формата png
+            with open(f'stickers/{sticker["orderId"]}.svg', 'wb') as file:
+                file.write(decoded_data)
+
 
 def print_supplies(root):
     """Выбор Поставки из списка.
     Выводит окно для выбора.
-    Печать Этикетов и Стикеров для сборочных заданий.
+    Печать Этикеток и Стикеров для сборочных заданий.
     """
-
     def on_select():
         """Обработка кнопки Печать"""
         selected_word = listbox.curselection()
@@ -107,7 +125,38 @@ def print_supplies(root):
         client = WBClient(url + f'supplies/{supply_id}/orders', handler=WBClient.extract_orders)  # Клиент запросов
         method = 'get'
         orders = client.make_request(method=method)
-        print(orders)
+
+        # Получение этикеток сборочных заданий
+        client = WBClient(url + f'orders/stickers', handler=WBClient.extract_stickers)  # Клиент запросов
+        method = 'post'
+        # Разбиваем список на части по 100 заданий
+        start = 0
+        while start < len(orders):
+            to_params = [i['order'] for i in orders[start:start+100]]
+            data = {
+                "orders": to_params,
+            }
+            params = {
+                'type': 'svg',
+                'width': 58,
+                'height': 40,
+            }
+            client.make_request(method=method, data=json.dumps(data), params=params)
+
+            start += 100
+
+        # Печать этикеток и стикеров
+        for order in orders:
+            try:
+                print_btw(order['article'], 1, root)
+            except Exception as e:
+                # Окно сообщения об ошибке стандартное
+                showerror("Ошибка", f"{e}\n{order['article']}")
+
+            command = f'"{BARTENDER}" /P /XS /RUN /C=1 stickers/{order["order"]}.svg'
+            subprocess.Popen(command, shell=True)
+            break
+
 
     url = 'https://suppliers-api.wildberries.ru/api/v3/'
 
