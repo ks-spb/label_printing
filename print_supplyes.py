@@ -5,6 +5,7 @@
 # После выбора получает Сборочные задания из Поставки.
 # Скачивает стикеры для всех заданий (стикеры готовятся на WB).
 # Печатает Этикетку и Стикер.
+# https://seller.wildberries.ru/marketplace-orders-new/on-assembly/to-warehouse
 
 import os
 import json
@@ -111,7 +112,6 @@ class WBClient():
             # Сохранение бинарных данных в файл формата png
             with open(f'{os.path.join(self.stickers_folder, sticker["orderId"])}.png', 'wb') as file:
                 file.write(decoded_data)
-
 
 
 def print_supplies(root):
