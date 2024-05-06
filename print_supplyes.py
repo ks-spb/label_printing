@@ -179,7 +179,6 @@ def print_supplies(root):
                 # Окно сообщения об ошибке стандартное
                 showerror("Ошибка", f"{e}\n{order['article']}")
 
-            # command = f'"{BARTENDER}" /P /XS /RUN /C=1 stickers/{order["order"]}.svg'
             obj.PicturePath = f'{os.path.join(client.stickers_folder, order["order"])}.png'
             # Печать измененной этикетки
             label_format.PrintOut(False, False)

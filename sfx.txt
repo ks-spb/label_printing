@@ -1,7 +1,7 @@
 ;Расположенный ниже комментарий содержит команды SFX-сценария
 
 
-Path="C:\Label Printing"
+Path="C:\LabelPrinting"
 Overwrite=1
 Title=Печать этикеток
 

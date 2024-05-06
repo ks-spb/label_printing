@@ -17,11 +17,12 @@
 
 ## Создание exe
 pyinstaller --windowed --icon=ico.ico label_printing.py
-Поместить файл .env в папку _internal, 
+Поместить файлы: .env, articles_dict.json, template.btw 
+и папку stickers в папку _internal, 
 а файл ico.ico рядом с ней и файлом label_printing.exe
 
 ## Создание инсталлятора
-* В проводнике Windows. В папке dist\swd выделить все файлы, в контекстном меню выбрать Добавить в архив (Winrar)
+* В проводнике Windows. В папке dist\label_printing выделить все файлы, в контекстном меню выбрать Добавить в архив (Winrar)
 * Поставить галочку Создать SFX-архив. Изменить имя файла на label_printing_setup.exe. Нажать ОК.
 * Скопировать содержимое файла sfx.txt в буфер обмена
 * Открыть контекстное меню на dist\label_printing\label_printing.exe, выбрать Открыть в WinRAR

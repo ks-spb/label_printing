@@ -12,7 +12,7 @@ import subprocess
 import os
 import json
 import re
-from tkinter.messagebox import askyesno
+from tkinter.messagebox import askyesno, showerror
 import yadisk
 
 from config import env
@@ -111,11 +111,12 @@ class RemoteOperation:
             file_yandex = f'{self.SEARCH_START}/{file_yandex}'
         else:
             message = 'Загрузка этикетки'
-            file_local = name_for_save + '.btw'
+            file_local = os.path.join(stickers, name_for_save + '.btw')
+
         if self.yandex.exists(file_yandex):
             self.show_message(message)  # Показываем сообщение
             # Загрузка файла
-            self.yandex.download(file_yandex, os.path.join(stickers, file_local))
+            self.yandex.download(file_yandex, file_local)
             self.hide_message()
             return file_local
         return False
@@ -173,18 +174,20 @@ def print_btw(art: str, count: int, root, run=False):
         name = None
         if str(art) in cast:
             name = yandex.download(cast[str(art)], str(art))
+
         if name:
             # Удачно сохранили файл на диск еще в условии: yandex.download.
             # Получили имя файла, под которым сохранили.
             if count:
                 print('Печать этикетки ' + str(art))
                 # Печать файла с указанием количества копий
-                command = f'"{BARTENDER}" /P /XS /RUN /C={count} stickers\\{name}'
+                command = f'"{BARTENDER}" /P /XS /RUN /C={count} {name}'
             else:
                 # Печать файла
                 print('Открытие этикетки ' + str(art))
                 # Открытие файла в редакторе
-                command = f'"{BARTENDER}" /RUN stickers\\{name}'
+                command = f'"{BARTENDER}" /RUN {name}'
+
             if run:
                 subprocess.run(command, shell=True)
             else:
@@ -215,5 +218,5 @@ try:
     with open('articles_dict.json', 'rb') as file:
         ARTICLE_DICT = json.loads(file.read().decode('utf-8'))
 except Exception as e:
-    print('Ошибка чтения словаря артикулов:', e)
+    showerror("Ошибка чтения словаря артикулов", e)
     ARTICLE_DICT = dict()
