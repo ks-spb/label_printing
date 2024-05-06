@@ -64,13 +64,14 @@ def print_label():
 BLOCK = False  # Блокировка запуска функции печати до выхода из нее
 
 # Удаляем старые этикетки из папки программы.
-# Получаем список файлов в текущей папке
-files = os.listdir()
+# Получаем путь к папке stickers в текущей папке программы
+path = os.path.join(os.path.dirname(__file__), 'stickers')
+files = os.listdir(path)
 
 # Проходим по каждому файлу
 for file in files:
-    if file.endswith(".btw"):  # Проверяем, что файл имеет расширение ".btw"
-        os.remove(file)  # Удаляем файл
+    if file.endswith(".btw") or file.endswith(".png"):  # Проверяем, что файл ".btw" или ".png"
+        os.remove(os.path.join(path, file))  # Удаляем файл
 
 root = tk.Tk()
 root.title("Печать этикеток")

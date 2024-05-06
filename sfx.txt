@@ -5,4 +5,4 @@ Path="C:\Label Printing"
 Overwrite=1
 Title=Печать этикеток
 
-Shortcut=D, ".\label_printing.exe", , "Открыть программу для открытия и печати этикеток", "Label Printing", .\ico.ico
+Shortcut=D, ".\label_printing.exe", , "Запустить программу для открытия и печати этикеток", "Label Printing", .\ico.ico

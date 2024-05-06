@@ -6,15 +6,17 @@
 # Скачивает стикеры для всех заданий (стикеры готовятся на WB).
 # Печатает Этикетку и Стикер.
 
+import os
 import json
 import base64
 import requests
 import subprocess
 import tkinter as tk
 from config import env
+import win32com.client
 
 from tkinter.messagebox import showerror
-from print_btw import print_btw, BARTENDER
+from print_btw import print_btw
 
 
 class WBClient():
@@ -35,6 +37,9 @@ class WBClient():
         self.handler = handler  # Метод для обработки данных запроса
         self.err_message = None
 
+        # Получаем путь к папке stickers в текущей папке программы
+        self.stickers_folder = os.path.join(os.path.dirname(__file__), 'stickers')
+
     def make_request(self, **kwargs):
         """Выполнение запроса.
         Принимает параметры для запроса в готовом виде (method, data, params...),
@@ -45,7 +50,7 @@ class WBClient():
         self.err_message = 'Ошибка запроса API WB'
         try:
             response = requests.request(url=self.url, headers=self.headers, **kwargs)
-            data = json.loads(response.content)
+            data = json.loads(response.content, parse_int=str)
             return self.handler(self, data)  # Обработка полученных данных ранее назначенным методом
         except Exception as e:
             showerror('Ошибка', f"{self.err_message}\n{e}")
@@ -103,10 +108,10 @@ class WBClient():
         for sticker in stickers['stickers']:
             # Декодирование base64 строки в бинарные данные
             decoded_data = base64.b64decode(sticker['file'])
-
             # Сохранение бинарных данных в файл формата png
-            with open(f'stickers/{sticker["orderId"]}.svg', 'wb') as file:
+            with open(f'{os.path.join(self.stickers_folder, sticker["orderId"])}.png', 'wb') as file:
                 file.write(decoded_data)
+
 
 
 def print_supplies(root):
@@ -132,12 +137,12 @@ def print_supplies(root):
         # Разбиваем список на части по 100 заданий
         start = 0
         while start < len(orders):
-            to_params = [i['order'] for i in orders[start:start+100]]
+            to_params = [int(i['order']) for i in orders[start:start+100]]
             data = {
                 "orders": to_params,
             }
             params = {
-                'type': 'svg',
+                'type': 'png',
                 'width': 58,
                 'height': 40,
             }
@@ -145,18 +150,47 @@ def print_supplies(root):
 
             start += 100
 
+        top.destroy()  # Закрываем окно выбора
+
         # Печать этикеток и стикеров
+
+        # Откроем Bartender для печати стикеров в формате PNG.
+        # Картинки напрямую не печатаются, поэтому их вставляем в шаблон и печатаем его.
+        # Создаем экземпляр программы BarTender
+        bt_app = win32com.client.Dispatch("BarTender.Application")
+        # Открываем окно (не показываем)
+        bt_app.Visible = False
+        # Открываем шаблон
+        path = os.path.dirname(os.path.abspath(__file__))  # Текущая папка программы
+        label_format = bt_app.Formats.Open(os.path.join(path, 'template.btw'), False, "")
+        # Получаем COM-объекты с шаблона (там одна картинка)
+        objects = label_format.Objects
+        # Находим объект с картинкой
+        for obj in objects:
+            if obj.Type == 6:  # Тип объекта картинка, ее и будем менять
+                break
+        i = 0
+        # Печать стикеров
         for order in orders:
+            print('Печать стикера ' + order['article'])
             try:
-                print_btw(order['article'], 1, root)
+                print_btw(order['article'], 1, root, run=True)
             except Exception as e:
                 # Окно сообщения об ошибке стандартное
                 showerror("Ошибка", f"{e}\n{order['article']}")
 
-            command = f'"{BARTENDER}" /P /XS /RUN /C=1 stickers/{order["order"]}.svg'
-            subprocess.Popen(command, shell=True)
-            break
+            # command = f'"{BARTENDER}" /P /XS /RUN /C=1 stickers/{order["order"]}.svg'
+            obj.PicturePath = f'{os.path.join(client.stickers_folder, order["order"])}.png'
+            # Печать измененной этикетки
+            label_format.PrintOut(False, False)
 
+            # Ограничение на количество печатаемых стикеров
+            # if i == 6:
+            #     break
+            # i += 1
+
+        # Close the BarTender application
+        bt_app.Quit(1)
 
     url = 'https://suppliers-api.wildberries.ru/api/v3/'
 

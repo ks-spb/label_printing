@@ -102,6 +102,9 @@ class RemoteOperation:
         Возвращает False - если запрашиваемого файла нет.
         Или имя сохраненного файла."""
 
+        # Получаем путь к папке stickers в текущей папке программы
+        stickers = os.path.join(os.path.dirname(__file__), 'stickers')
+
         if file_yandex == 'btws.json':
             message = 'Загрузка обновлений'
             file_local = file_yandex
@@ -112,7 +115,7 @@ class RemoteOperation:
         if self.yandex.exists(file_yandex):
             self.show_message(message)  # Показываем сообщение
             # Загрузка файла
-            self.yandex.download(file_yandex, file_local)
+            self.yandex.download(file_yandex, os.path.join(stickers, file_local))
             self.hide_message()
             return file_local
         return False
@@ -153,10 +156,11 @@ class RemoteOperation:
         self.hide_message()
 
 
-def print_btw(art: str, count: int, root):
+def print_btw(art: str, count: int, root, run=False):
     """ Печать этикеток.
     Принимает артикул, количество копий печати и ссылку на поле для вывода сообщений.
-    Если количество 0 - то этикетку нужно не печатать, а просто открыть в редакторе."""
+    Если количество 0 - то этикетку нужно не печатать, а просто открыть в редакторе.
+    Если run=True, то печать будет происходить в одном потоке."""
     art = ARTICLE_DICT.get(art, art)  # Проверяем артикул в словаре перевода
     yandex = RemoteOperation(root)  # Подключаемся к Яндекс.Диску
     yandex.change_status()  # Подготовка файла со списком этикеток
@@ -175,14 +179,17 @@ def print_btw(art: str, count: int, root):
             if count:
                 print('Печать этикетки ' + str(art))
                 # Печать файла с указанием количества копий
-                command = f'"{BARTENDER}" /P /XS /RUN /C={count} {name}'
+                command = f'"{BARTENDER}" /P /XS /RUN /C={count} stickers\\{name}'
             else:
                 # Печать файла
                 print('Открытие этикетки ' + str(art))
                 # Открытие файла в редакторе
-                command = f'"{BARTENDER}" /RUN {name}'
+                command = f'"{BARTENDER}" /RUN stickers\\{name}'
+            if run:
+                subprocess.run(command, shell=True)
+            else:
+                subprocess.Popen(command, shell=True)
 
-            subprocess.Popen(command, shell=True)
             return
         else:
             # Артикул не найден
