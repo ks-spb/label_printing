@@ -15,7 +15,7 @@ import re
 from tkinter.messagebox import askyesno, showerror
 import yadisk
 
-from config import env
+from bartender import resolve_bartender_executable
 
 
 class RemoteOperation:
@@ -23,6 +23,8 @@ class RemoteOperation:
     Выводит сообщения в поле для вывода, которое получает при инициализации. """
     def __init__(self, root):
         # Данные о путях и токены для доступа к API берем из .env файла
+        from config import env
+
         self.root = root
 
         self.TOKEN = env("TOKEN")
@@ -162,6 +164,12 @@ def print_btw(art: str, count: int, root, run=False):
     Принимает артикул, количество копий печати и ссылку на поле для вывода сообщений.
     Если количество 0 - то этикетку нужно не печатать, а просто открыть в редакторе.
     Если run=True, то печать будет происходить в одном потоке."""
+    from config import env
+
+    bartender = resolve_bartender_executable(
+        env.str("BARTENDER", default="")
+    )
+    bartender_command = str(bartender).replace('\\', '\\\\')
     art = ARTICLE_DICT.get(art, art)  # Проверяем артикул в словаре перевода
     yandex = RemoteOperation(root)  # Подключаемся к Яндекс.Диску
     yandex.change_status()  # Подготовка файла со списком этикеток
@@ -181,12 +189,12 @@ def print_btw(art: str, count: int, root, run=False):
             if count:
                 print('Печать этикетки ' + str(art))
                 # Печать файла с указанием количества копий
-                command = f'"{BARTENDER}" /P /XS /RUN /C={count} {name}'
+                command = f'"{bartender_command}" /P /XS /RUN /C={count} {name}'
             else:
                 # Печать файла
                 print('Открытие этикетки ' + str(art))
                 # Открытие файла в редакторе
-                command = f'"{BARTENDER}" /RUN {name}'
+                command = f'"{bartender_command}" /RUN {name}'
 
             if run:
                 subprocess.run(command, shell=True)
@@ -205,12 +213,6 @@ def print_btw(art: str, count: int, root, run=False):
 
     print('Артикул или файл не найден.')
     raise Exception('Артикул или файл не найден.')
-
-
-BARTENDER = env("BARTENDER")  # Путь к программе Bartender для печати этикеток
-if BARTENDER[-1] != '\\':
-    BARTENDER += '\\'
-BARTENDER = BARTENDER.replace('\\', '\\\\') + "bartend.exe"
 
 # Читаем в память файл для перевода артикулов articles_dict.json
 # из папки программы и переводим его в словарь.

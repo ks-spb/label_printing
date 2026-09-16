@@ -1,0 +1,8 @@
+/.build-venv/
+/build/
+/dist/
+/release/
+/label_printing.spec
+/programma/
+__pycache__/
+*.pyc
