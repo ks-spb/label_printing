@@ -1,0 +1,14 @@
+Third-party software included with Label Printing
+=================================================
+
+SumatraPDF 3.6.1 (64-bit portable)
+---------------------------------
+Project: https://www.sumatrapdfreader.org/
+Source: https://github.com/sumatrapdfreader/sumatrapdf
+Binary used by the build:
+https://files.sumatrapdfreader.org/software/sumatrapdf/rel/3.6.1/SumatraPDF-3.6.1-64.zip
+License: GNU General Public License version 3
+License information: https://github.com/sumatrapdfreader/sumatrapdf/blob/master/COPYING
+
+SumatraPDF is distributed as a separate executable and is invoked by
+Label Printing only for PDF printing.

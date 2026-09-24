@@ -1,4 +1,4 @@
-#define MyAppVersion "1.1.1"
+#define MyAppVersion "1.1.4"
 #define MyAppName "Label Printing " + MyAppVersion + " (тест)"
 #define MyAppExeName "label_printing.exe"
 

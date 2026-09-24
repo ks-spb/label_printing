@@ -10,6 +10,14 @@ $buildVenv = Join-Path $projectRoot ".build-venv"
 $buildPython = Join-Path $buildVenv "Scripts\python.exe"
 $distRoot = Join-Path $projectRoot "dist\label_printing"
 $internalRoot = Join-Path $distRoot "_internal"
+$sumatraVersion = "3.6.1"
+$sumatraArchiveName = "SumatraPDF-$sumatraVersion-64.zip"
+$sumatraExecutableName = "SumatraPDF-$sumatraVersion-64.exe"
+$sumatraUrl = "https://files.sumatrapdfreader.org/software/sumatrapdf/rel/$sumatraVersion/$sumatraArchiveName"
+$sumatraSha256 = "98B33A518D42986856D225064B0CD2D3643ECF78CBF84AB873D26CC51877A544"
+$sumatraCacheRoot = Join-Path $buildVenv "third-party\sumatrapdf-$sumatraVersion"
+$sumatraArchive = Join-Path $sumatraCacheRoot $sumatraArchiveName
+$sumatraExecutable = Join-Path $sumatraCacheRoot $sumatraExecutableName
 $installerScript = Join-Path $projectRoot "installer\label_printing.iss"
 $installerSource = Get-Content -LiteralPath $installerScript -Raw
 $versionMatch = [regex]::Match(
@@ -31,6 +39,23 @@ try {
         }
     }
 
+    New-Item -ItemType Directory -Path $sumatraCacheRoot -Force | Out-Null
+    if (-not (Test-Path -LiteralPath $sumatraArchive -PathType Leaf)) {
+        Invoke-WebRequest -Uri $sumatraUrl -OutFile $sumatraArchive
+    }
+    $actualSumatraSha256 = (Get-FileHash -LiteralPath $sumatraArchive `
+        -Algorithm SHA256).Hash.ToUpperInvariant()
+    if ($actualSumatraSha256 -ne $sumatraSha256) {
+        throw "SumatraPDF archive checksum mismatch. Delete $sumatraArchive and retry."
+    }
+    if (-not (Test-Path -LiteralPath $sumatraExecutable -PathType Leaf)) {
+        Expand-Archive -LiteralPath $sumatraArchive `
+            -DestinationPath $sumatraCacheRoot -Force
+    }
+    if (-not (Test-Path -LiteralPath $sumatraExecutable -PathType Leaf)) {
+        throw "SumatraPDF executable was not found after extraction."
+    }
+
     & $buildPython -m pip install --disable-pip-version-check --upgrade `
         pyinstaller environs yadisk requests pywin32
     if ($LASTEXITCODE -ne 0) {
@@ -46,6 +71,7 @@ try {
         --contents-directory "_internal" `
         --add-data "$(Join-Path $projectRoot 'articles_dict.json');." `
         --add-data "$(Join-Path $projectRoot 'template.btw');." `
+        --add-binary "$sumatraExecutable;sumatra" `
         (Join-Path $projectRoot "label_printing.py")
     if ($LASTEXITCODE -ne 0) {
         throw "PyInstaller could not build the application."
@@ -55,6 +81,8 @@ try {
         -Destination (Join-Path $distRoot "ico.ico") -Force
     Copy-Item -LiteralPath (Join-Path $projectRoot "articles_dict.json") `
         -Destination (Join-Path $distRoot "articles_dict.json") -Force
+    Copy-Item -LiteralPath (Join-Path $projectRoot "THIRD_PARTY_NOTICES.txt") `
+        -Destination (Join-Path $distRoot "THIRD_PARTY_NOTICES.txt") -Force
     New-Item -ItemType Directory -Path (Join-Path $internalRoot "stickers") `
         -Force | Out-Null
 

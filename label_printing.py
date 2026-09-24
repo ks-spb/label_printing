@@ -5,10 +5,12 @@ from __future__ import annotations
 import threading
 import tkinter as tk
 from pathlib import Path
+from tkinter import filedialog
 from tkinter.messagebox import showerror
 from typing import Callable, Iterable, Sequence
 
 from label_search import PdfLabelDirectoryError, find_pdf_matches, load_pdf_index
+from pdf_settings import load_pdf_labels_dir, save_pdf_labels_dir
 from pdf_viewer import open_pdf, print_pdf
 
 
@@ -17,7 +19,8 @@ OpenAction = Callable[[Path], None]
 PrintDispatch = Callable[[Path, int], object]
 PdfPrintAction = Callable[[Path, int], int]
 FallbackAction = Callable[[str, int], None]
-APP_VERSION = "1.1.1"
+PdfDirectorySaver = Callable[[Path], None]
+APP_VERSION = "1.1.4"
 
 
 def is_valid_count(text: str) -> bool:
@@ -131,18 +134,22 @@ class LabelPrintingApp:
         root: tk.Tk,
         pdf_index: Sequence[Path],
         pdf_error: PdfLabelDirectoryError | None,
+        pdf_directory: Path,
         fallback_printer: Callable[[str, int, tk.Widget], None],
         supplies_printer: Callable[[tk.Widget], None],
         open_action: OpenAction = open_pdf,
         print_action: PdfPrintAction = print_pdf,
+        pdf_directory_saver: PdfDirectorySaver = save_pdf_labels_dir,
     ) -> None:
         self.root = root
         self.pdf_index = tuple(pdf_index)
         self.pdf_error = pdf_error
+        self.pdf_directory = pdf_directory
         self.fallback_printer = fallback_printer
         self.supplies_printer = supplies_printer
         self.open_action = open_action
         self.print_action = print_action
+        self.pdf_directory_saver = pdf_directory_saver
         self.busy = False
         self._configure_window()
         self._build_widgets()
@@ -192,6 +199,9 @@ class LabelPrintingApp:
         self.mainmenu = tk.Menu(self.root)
         self.root.config(menu=self.mainmenu)
         self.mainmenu.add_command(
+            label="Папка PDF…", command=self.choose_pdf_directory
+        )
+        self.mainmenu.add_command(
             label="Поставки", command=lambda: self.supplies_printer(self.message)
         )
 
@@ -199,6 +209,8 @@ class LabelPrintingApp:
         label_state = tk.DISABLED if self.busy or self.pdf_error else tk.NORMAL
         self.print_button.config(state=label_state)
         self.open_button.config(state=label_state)
+        directory_state = tk.DISABLED if self.busy else tk.NORMAL
+        self.mainmenu.entryconfig("Папка PDF…", state=directory_state)
         supplies_state = tk.DISABLED if self.busy else tk.NORMAL
         self.mainmenu.entryconfig("Поставки", state=supplies_state)
 
@@ -207,11 +219,52 @@ class LabelPrintingApp:
         self._update_controls()
 
     def _show_pdf_startup_error(self) -> None:
+        if self.choose_pdf_directory():
+            return
         showerror(
             "Папка PDF недоступна",
-            f"{self.pdf_error}\n\nПодключите диск и перезапустите программу.",
+            f"{self.pdf_error}\n\nВыберите папку через меню «Папка PDF…».",
             parent=self.root,
         )
+
+    def choose_pdf_directory(self) -> bool:
+        """Выбирает, проверяет и запоминает PDF-папку пользователя."""
+        if self.busy:
+            return False
+
+        initial_directory = self.pdf_directory
+        if not initial_directory.is_dir():
+            initial_directory = initial_directory.parent
+        selected_directory = filedialog.askdirectory(
+            parent=self.root,
+            title="Выберите папку с PDF-этикетками",
+            initialdir=str(initial_directory),
+            mustexist=True,
+        )
+        if not selected_directory:
+            return False
+
+        directory = Path(selected_directory)
+        try:
+            index = load_pdf_index(directory)
+        except PdfLabelDirectoryError as exc:
+            showerror("Папка PDF недоступна", str(exc), parent=self.root)
+            return False
+
+        self.pdf_directory = directory
+        self.pdf_index = tuple(index)
+        self.pdf_error = None
+        self._update_controls()
+        self.message.config(text=f"Выбрана PDF-папка: {directory}")
+        try:
+            self.pdf_directory_saver(directory)
+        except OSError as exc:
+            showerror(
+                "Не удалось запомнить папку PDF",
+                f"Папка будет использоваться до закрытия программы.\n\n{exc}",
+                parent=self.root,
+            )
+        return True
 
     def _choose_pdf(self, paths: Sequence[Path]) -> Path | None:
         return PdfChoiceDialog.choose(self.root, paths)
@@ -308,9 +361,10 @@ def main() -> None:
     from print_supplyes import print_supplies
 
     _clear_cached_btw_files()
+    pdf_directory = load_pdf_labels_dir(PDF_LABELS_DIR)
     pdf_error = None
     try:
-        pdf_index = load_pdf_index(PDF_LABELS_DIR)
+        pdf_index = load_pdf_index(pdf_directory)
     except PdfLabelDirectoryError as exc:
         pdf_index = ()
         pdf_error = exc
@@ -320,6 +374,7 @@ def main() -> None:
         root=root,
         pdf_index=pdf_index,
         pdf_error=pdf_error,
+        pdf_directory=pdf_directory,
         fallback_printer=print_btw,
         supplies_printer=print_supplies,
     )

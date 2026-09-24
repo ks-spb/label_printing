@@ -1,5 +1,6 @@
 """Проверки параллельной установки тестовой версии."""
 
+import re
 import unittest
 from pathlib import Path
 
@@ -14,6 +15,12 @@ class InstallerConfigTests(unittest.TestCase):
             encoding="utf-8"
         )
         cls.build_script = (PROJECT_ROOT / "build_release.ps1").read_text(
+            encoding="utf-8"
+        )
+        cls.app_source = (PROJECT_ROOT / "label_printing.py").read_text(
+            encoding="utf-8"
+        )
+        cls.notices = (PROJECT_ROOT / "THIRD_PARTY_NOTICES.txt").read_text(
             encoding="utf-8"
         )
 
@@ -43,6 +50,28 @@ class InstallerConfigTests(unittest.TestCase):
             self.installer,
         )
         self.assertIn('$releaseBaseName = "label_printing_$($appVersion)_setup"', self.build_script)
+
+    def test_application_and_installer_versions_match(self) -> None:
+        installer_version = re.search(
+            r'#define MyAppVersion "([^"]+)"', self.installer
+        )
+        app_version = re.search(r'APP_VERSION = "([^"]+)"', self.app_source)
+
+        self.assertIsNotNone(installer_version)
+        self.assertIsNotNone(app_version)
+        self.assertEqual(installer_version.group(1), "1.1.4")
+        self.assertEqual(app_version.group(1), installer_version.group(1))
+
+    def test_build_bundles_verified_sumatra_pdf(self) -> None:
+        self.assertIn('$sumatraVersion = "3.6.1"', self.build_script)
+        self.assertIn(
+            "98B33A518D42986856D225064B0CD2D3643ECF78CBF84AB873D26CC51877A544",
+            self.build_script,
+        )
+        self.assertIn("Get-FileHash", self.build_script)
+        self.assertIn('--add-binary "$sumatraExecutable;sumatra"', self.build_script)
+        self.assertIn("THIRD_PARTY_NOTICES.txt", self.build_script)
+        self.assertIn("SumatraPDF 3.6.1", self.notices)
 
 
 if __name__ == "__main__":
